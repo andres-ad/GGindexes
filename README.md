@@ -25,6 +25,21 @@ This analysis is a first, narrow look at that evidence: one batch
 (**Run131**, no GG problems reported) and a NextSeq (**NextSeq001**,
 potential GG problem reported), compared sample-for-sample.
 
+## Notes
+
+- **2026-07-10:** `data/sample_coverage_Run131.txt` was replaced with a
+  corrected export. The original file had the 2 positive controls under
+  the wrong lot ID (`8073801003`, vs `8073801533` used everywhere else),
+  which made them fail to match the index sheet, and used hyphens instead
+  of underscores in control names (`Negative-Control-1` vs
+  `Negative_Control_1`). The corrected file fixes the lot ID and the
+  matching logic was updated to normalize `-`/`_` in sample IDs, so **all
+  96/96 plate samples now match in both runs** (previously 88/96). This
+  added one more `Index2 (i5) starts GG` sample — the `1K_Positive_Control`
+  standard — bringing that group to **n=6**, and added the 6 negative
+  controls and the 2nd positive control to the `Neither` pool. See
+  Methodology and Results below for how negative controls are handled.
+
 ## Data
 
 All source files are in [`data/`](data):
@@ -55,26 +70,31 @@ Derived outputs are in [`data/processed/`](data/processed):
    speak to i7-GG or double-GG cases.
 
 2. **Sample matching across runs.** Coverage files suffix each sample name
-   with `_S<number>` (NextSeq001) or `_S<number>_L001` (Run131). Stripping
-   that suffix and matching against the index sheet's `Sample_ID` gives
-   96/96 matches in NextSeq001 and 88/96 in Run131.
+   with `_S<number>` (NextSeq001) or `_S<number>_L001` (Run131), and use
+   `-` or `_` inconsistently in control names. Stripping the suffix and
+   normalizing `-`/`_` before matching against the index sheet's
+   `Sample_ID` gives **96/96 matches in both runs**.
 
-   The 8 unmatched samples are all controls: the 2 positive controls use a
-   different lot ID between runs (`8073801003` in Run131 vs `8073801533` in
-   NextSeq001), and the 6 negative controls aren't present in Run131's
-   coverage file at all. **These 8 were excluded from the comparison** —
-   88 real samples remain, matched in both runs.
+3. **Sample type.** Each matched sample is tagged `biological`,
+   `positive_control`, or `negative_control`. Positive controls (a
+   synthetic mock-community standard, expected to amplify normally) are
+   kept in the performance comparison. **Negative controls are excluded**
+   from the plot and summary statistics: near-zero `Input` reads is their
+   correct, expected outcome (no template loaded), not a performance
+   signal, and including them would make the `Neither` group look like it
+   underperforms for a reason that has nothing to do with GG-index status.
+   They remain in `plateD002_input_comparison.csv` for the record.
 
-3. **Metric.** `Reads` at `Stage == "Input"` — the earliest pipeline stage,
+4. **Metric.** `Reads` at `Stage == "Input"` — the earliest pipeline stage,
    i.e. reads successfully assigned to the sample by demultiplexing, before
    any dimer/amplicon filtering. This is the most direct readout of a
    demux / cluster-registration / signal problem, which is what the GG-index
    risk is about.
 
-4. **One further exclusion.** Sample `IM-24-030-QCFP` (`Neither` category)
-   has `Input = 1` read on **both** platforms — a near-total dropout
-   unrelated to GG-index status (neither of its indexes starts GG). It's
-   excluded from the plot and from the summary statistics below so it
+5. **One further exclusion.** Sample `IM-24-030-QCFP` (`Neither` category,
+   biological) has `Input = 1` read on **both** platforms — a near-total
+   dropout unrelated to GG-index status (neither of its indexes starts GG).
+   It's excluded from the plot and from the summary statistics below so it
    doesn't dominate the "Neither" group's mean/stdev, but it remains in
    `plateD002_input_comparison.csv` and in the table view of the chart.
 
@@ -91,26 +111,29 @@ python3 scripts/render_artifact.py      # writes figures/*.html
 
 | GG category | n | Mean Input — Run131 (MiSeq) | Mean Input — NextSeq001 | Mean ratio (NextSeq / MiSeq) |
 |---|---|---|---|---|
-| Index2 (i5) starts GG | 5 | 186,983 | 298,614 | **1.60** |
-| Neither | 82 | 153,422 | 241,470 | **1.58** |
+| Index2 (i5) starts GG | 6 | 180,666 | 287,587 | **1.60** |
+| Neither (excl. negative controls & dropout) | 83 | 153,218 | 241,465 | **1.58** |
 
 (Full detail in `data/processed/summary_stats.csv`; per-sample values in
 `data/processed/plateD002_input_comparison.csv`.)
 
-The 5 individual `Index2 (i5) starts GG` samples behind that mean:
+The 6 individual `Index2 (i5) starts GG` samples behind that mean — 5
+biological samples plus the `1K_Positive_Control` standard, which also
+carries a GG(i5) index on this plate:
 
-| Sample | Index2 (i5) primer sequence | Input — Run131 (MiSeq) | Input — NextSeq001 | Ratio (NextSeq / MiSeq) |
-|---|---|---|---|---|
-| IM-24-030-HLUN | `GGAATGAGTCGT` | 122,059 | 189,942 | 1.556 |
-| IM-24-030-SBPN | `GGAGAATGCTTG` | 100,178 | 168,147 | 1.678 |
-| IM-24-030-TMSA | `GGCTAAGAGAAC` | 249,034 | 382,420 | 1.536 |
-| IM-24-030-ZCCV | `GGAAGAGACACT` | 247,820 | 412,307 | 1.664 |
-| IM-24-044-DGQK | `GGTACTGACACT` | 215,822 | 340,252 | 1.577 |
-| **Mean** | — | **186,983** | **298,614** | **1.597** |
+| Sample | Type | Index2 (i5) primer sequence | Input — Run131 (MiSeq) | Input — NextSeq001 | Ratio (NextSeq / MiSeq) |
+|---|---|---|---|---|---|
+| IM-24-030-HLUN | biological | `GGAATGAGTCGT` | 122,059 | 189,942 | 1.556 |
+| IM-24-030-SBPN | biological | `GGAGAATGCTTG` | 100,178 | 168,147 | 1.678 |
+| IM-24-030-TMSA | biological | `GGCTAAGAGAAC` | 249,034 | 382,420 | 1.536 |
+| IM-24-030-ZCCV | biological | `GGAAGAGACACT` | 247,820 | 412,307 | 1.664 |
+| IM-24-044-DGQK | biological | `GGTACTGACACT` | 215,822 | 340,252 | 1.577 |
+| 1K_Positive_Control_8073801533_2 | positive control | `GGTTCTTCCACT` | 149,080 | 232,456 | 1.559 |
+| **Mean** | — | — | **180,666** | **287,587** | **1.595** |
 
-All 5 ratios cluster tightly (1.54–1.68), matching the 82-sample `Neither`
-group's mean ratio of 1.58 — no individual GG(i5) sample stands out as an
-underperformer relative to the others.
+All 6 ratios cluster tightly (1.54–1.68), matching the 83-sample `Neither`
+group's mean ratio of 1.58 — no individual GG(i5) sample, biological or
+control, stands out as an underperformer relative to the others.
 
 ![Scatter plot of Input reads, Run131 (MiSeq) vs NextSeq001 (NextSeq), colored by GG-index status](figures/plateD002_gg_vs_neither_scatter.png)
 
@@ -125,13 +148,14 @@ https://claude.ai/code/artifact/b91f10a5-b492-44c0-bf9c-a2527649b0d9
   essentially every sample (all points sit above the y=x line) — expected,
   since NextSeq001 and Run131 are different runs with different total
   loading/depth, not a GG effect.
-- The 5 `Index2 (i5) starts GG` samples (green) fall **inside the same
-  cloud** as the 82 `Neither` samples (blue), not below it. Their mean
+- The 6 `Index2 (i5) starts GG` samples (green) fall **inside the same
+  cloud** as the 83 `Neither` samples (blue), not below it. Their mean
   NextSeq/MiSeq ratio (1.60) is essentially identical to — and if anything
   slightly higher than — the `Neither` group's (1.58).
 - No sample in either group shows the signature of a demux/cluster-
   registration failure (near-zero `Input` reads) except the one excluded
-  dropout, which is a `Neither`-category sample, not a GG one.
+  dropout, which is a `Neither`-category biological sample, not a GG one
+  (negative controls are near-zero by design and are excluded separately).
 
 ### Interpretation
 
@@ -142,9 +166,9 @@ to the MiSeq**, or relative to non-GG samples on the same NextSeq run.
 This should be weighed against real limitations, not treated as a
 clearance:
 
-- **n = 5** GG samples is a very small group to draw a general conclusion
-  from — a real but moderate effect could easily be invisible at this
-  sample size.
+- **n = 6** GG samples (5 biological + 1 positive control) is a very small
+  group to draw a general conclusion from — a real but moderate effect
+  could easily be invisible at this sample size.
 - This plate has **no i7-GG or double-GG (`Both`) samples**, so this
   analysis is silent on those cases, which may behave differently (i7 is
   frequently the platform's primary/first-read index and can be more

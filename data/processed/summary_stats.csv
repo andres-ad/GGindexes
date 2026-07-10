@@ -1,3 +1,3 @@
 GG_category,n,mean_Input_Run131_MiSeq,median_Input_Run131_MiSeq,stdev_Input_Run131_MiSeq,mean_Input_NextSeq001,median_Input_NextSeq001,stdev_Input_NextSeq001,mean_ratio_NextSeq_over_MiSeq
-Index2_GG,5,186982.6,215822,70946.1,298613.6,340252,112377.2,1.602
-Neither,82,153421.5,151928.0,55510.2,241469.9,235856.0,86852.3,1.58
+Index2_GG,6,180665.5,182451.0,65315.5,287587.3,286354.0,104078.7,1.595
+Neither,83,153217.7,151595,55201.9,241464.8,235945,86321.1,1.583

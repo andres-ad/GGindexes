@@ -22,15 +22,17 @@ rows = []
 with CSV_PATH.open(newline="") as fh:
     rows = list(csv.DictReader(fh))
 
-# One sample (IM-24-030-QCFP, GG_category=Neither) has Input=1 on both
-# platforms -- a near-total dropout unrelated to the GG-index question
-# (neither of its indexes starts GG). It skews the shared log-log axes by
-# five orders of magnitude, so it is excluded from this plot and called out
-# separately; it remains in data/processed/plateD002_input_comparison.csv.
+# Negative controls have near-zero reads BY DESIGN (no template) -- that's
+# a QC pass, not a performance data point, so they're excluded here.
+# IM-24-030-QCFP (Neither) has Input=1 on both platforms -- a near-total
+# dropout unrelated to the GG-index question (neither of its indexes
+# starts GG). Both exclusions are plot-only; both remain in
+# data/processed/plateD002_input_comparison.csv.
 DROPOUT_FLOOR = 100
 plotted_rows = [
     r for r in rows
-    if int(r["Input_Run131_MiSeq"]) >= DROPOUT_FLOOR
+    if r["Sample_type"] != "negative_control"
+    and int(r["Input_Run131_MiSeq"]) >= DROPOUT_FLOOR
     and int(r["Input_NextSeq001_NextSeq"]) >= DROPOUT_FLOOR
 ]
 excluded_rows = [r for r in rows if r not in plotted_rows]
@@ -75,11 +77,17 @@ for text in legend.get_texts():
     text.set_color("#0b0b0b")
 
 if excluded_rows:
-    names = ", ".join(r["Sample_ID"] for r in excluded_rows)
+    n_neg = sum(1 for r in excluded_rows if r["Sample_type"] == "negative_control")
+    other = [r["Sample_ID"] for r in excluded_rows if r["Sample_type"] != "negative_control"]
+    parts = []
+    if n_neg:
+        parts.append(f"{n_neg} negative controls (near-zero by design)")
+    if other:
+        parts.append(", ".join(other) + " (near-total dropout, unrelated to GG status)")
     fig.text(
         0.5, 0.005,
-        f"Not shown (Input < {DROPOUT_FLOOR} reads on one or both platforms, likely complete dropout): {names}",
-        ha="center", fontsize=7.5, color="#898781",
+        "Not shown: " + "; ".join(parts),
+        ha="center", fontsize=8, color="#898781",
     )
 
 fig.tight_layout(rect=(0, 0.03, 1, 1))

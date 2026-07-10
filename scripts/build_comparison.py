@@ -34,6 +34,14 @@ def gg_category(index1: str, index2: str) -> str:
     return "Neither"
 
 
+def sample_type(sample_id: str) -> str:
+    if sample_id.startswith("Negative_Control"):
+        return "negative_control"
+    if "Positive_Control" in sample_id:
+        return "positive_control"
+    return "biological"
+
+
 def load_index_sheet():
     samples = {}
     with INDEX_CSV.open(newline="") as fh:
@@ -44,18 +52,29 @@ def load_index_sheet():
                 "Index": row["Index"],
                 "Index2": row["Index2"],
                 "GG_category": gg_category(row["Index"], row["Index2"]),
+                "Sample_type": sample_type(sample_id),
             }
     return samples
+
+
+def normalize_id(sample_id: str) -> str:
+    """Coverage files are inconsistent about '-' vs '_' in control names
+    (e.g. "Negative-Control-1" vs the index sheet's "Negative_Control_1");
+    normalize both sides to match on that basis alone."""
+    return sample_id.replace("-", "_")
 
 
 def load_input_reads(path: Path) -> dict:
     reads = {}
     with path.open(newline="") as fh:
-        for row in csv.DictReader(fh, delimiter="\t"):
+        sample = fh.readline()
+        delimiter = "," if sample.count(",") >= sample.count("\t") else "\t"
+        fh.seek(0)
+        for row in csv.DictReader(fh, delimiter=delimiter):
             if row["Stage"] != "Input":
                 continue
             base_id = SUFFIX_RE.sub("", row["SampleID"])
-            reads[base_id] = int(row["Reads"])
+            reads[normalize_id(base_id)] = int(row["Reads"])
     return reads
 
 
@@ -67,8 +86,9 @@ def main():
     merged_rows = []
     unmatched = []
     for sample_id, info in samples.items():
-        r131 = run131.get(sample_id)
-        nseq = nextseq.get(sample_id)
+        norm_id = normalize_id(sample_id)
+        r131 = run131.get(norm_id)
+        nseq = nextseq.get(norm_id)
         if r131 is None or nseq is None:
             unmatched.append(sample_id)
             continue
@@ -85,7 +105,7 @@ def main():
     comparison_csv = OUT / "plateD002_input_comparison.csv"
     with comparison_csv.open("w", newline="") as fh:
         fieldnames = [
-            "Sample_ID", "Index", "Index2", "GG_category",
+            "Sample_ID", "Index", "Index2", "GG_category", "Sample_type",
             "Input_Run131_MiSeq", "Input_NextSeq001_NextSeq",
             "log2_fold_change_NextSeq_over_MiSeq",
         ]
@@ -93,15 +113,19 @@ def main():
         writer.writeheader()
         writer.writerows(merged_rows)
 
-    # Summary stats per GG_category per run.
-    # IM-24-030-QCFP (Neither) has Input=1 on both platforms -- a near-total
-    # dropout unrelated to GG-index status -- and is excluded here so it
-    # doesn't dominate the mean/stdev of its group. It stays in the
-    # comparison CSV above.
+    # Summary stats per GG_category per run, restricted to biological +
+    # positive-control samples:
+    # - Negative controls have near-zero reads BY DESIGN (no template) --
+    #   that's a QC pass, not a performance signal, so they're excluded
+    #   from the performance comparison (still present in the CSV above).
+    # - IM-24-030-QCFP (Neither) has Input=1 on both platforms -- a
+    #   near-total dropout unrelated to GG-index status -- excluded here
+    #   so it doesn't dominate the mean/stdev of its group.
     DROPOUT_FLOOR = 100
     stats_rows = [
         r for r in merged_rows
-        if r["Input_Run131_MiSeq"] >= DROPOUT_FLOOR
+        if r["Sample_type"] != "negative_control"
+        and r["Input_Run131_MiSeq"] >= DROPOUT_FLOOR
         and r["Input_NextSeq001_NextSeq"] >= DROPOUT_FLOOR
     ]
     by_cat = {}

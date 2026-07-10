@@ -18,6 +18,7 @@ for r in rows:
         "index1": r["Index"],
         "index2": r["Index2"],
         "cat": r["GG_category"],
+        "type": r["Sample_type"],
         "x": int(r["Input_Run131_MiSeq"]),
         "y": int(r["Input_NextSeq001_NextSeq"]),
         "ratio": round(int(r["Input_NextSeq001_NextSeq"]) / int(r["Input_Run131_MiSeq"]), 3)
@@ -132,14 +133,14 @@ HTML = """<!doctype html>
     </div>
     <svg id="chart" viewBox="0 0 820 600"></svg>
     <div class="table-wrap" id="tableWrap"></div>
-    <p class="foot">Excluded from the plot: IM-24-030-QCFP (Input = 1 read on both platforms, likely complete dropout, index category "Neither" — unrelated to GG status). It remains in the table view and in <code>data/processed/plateD002_input_comparison.csv</code>.</p>
+    <p class="foot">Excluded from the plot: the 6 negative controls (near-zero reads by design — a QC pass, not a performance signal) and IM-24-030-QCFP (Input = 1 read on both platforms, a likely complete dropout, index category "Neither" — unrelated to GG status). All remain in the table view and in <code>data/processed/plateD002_input_comparison.csv</code>.</p>
   </div>
 </div>
 <div class="tooltip" id="tooltip"></div>
 <script>
 const DATA = __DATA_JSON__;
 const DROPOUT_FLOOR = 100;
-const plotted = DATA.filter(d => d.x >= DROPOUT_FLOOR && d.y >= DROPOUT_FLOOR);
+const plotted = DATA.filter(d => d.type !== "negative_control" && d.x >= DROPOUT_FLOOR && d.y >= DROPOUT_FLOOR);
 
 const CAT_META = {
   Neither: { label: "Neither index starts GG", varName: "--series-neither", cls: "neither" },
