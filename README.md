@@ -22,8 +22,8 @@ failures, repeated failed samples on specific index combinations).
 
 This analysis is a first look at that evidence: one batch
 (**PlateD002**, indexed with **Dual003**) that was run at CPHL on both a MiSeq
-(**Run131**, no GG problems reported) and a NextSeq (**NextSeq001**,
-potential GG problem reported), compared sample-for-sample.
+(**Run131**, 150PE reads with v3 reagents kit) and a NextSeq (**NextSeq001**,on NextSeq 1000 with P2 reagents kit
+), compared sample-for-sample.
 
 ## Notes
 
