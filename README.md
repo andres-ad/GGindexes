@@ -97,6 +97,21 @@ python3 scripts/render_artifact.py      # writes figures/*.html
 (Full detail in `data/processed/summary_stats.csv`; per-sample values in
 `data/processed/plateD002_input_comparison.csv`.)
 
+The 5 individual `Index2 (i5) starts GG` samples behind that mean:
+
+| Sample | Index2 (i5) primer sequence | Input — Run131 (MiSeq) | Input — NextSeq001 | Ratio (NextSeq / MiSeq) |
+|---|---|---|---|---|
+| IM-24-030-HLUN | `GGAATGAGTCGT` | 122,059 | 189,942 | 1.556 |
+| IM-24-030-SBPN | `GGAGAATGCTTG` | 100,178 | 168,147 | 1.678 |
+| IM-24-030-TMSA | `GGCTAAGAGAAC` | 249,034 | 382,420 | 1.536 |
+| IM-24-030-ZCCV | `GGAAGAGACACT` | 247,820 | 412,307 | 1.664 |
+| IM-24-044-DGQK | `GGTACTGACACT` | 215,822 | 340,252 | 1.577 |
+| **Mean** | — | **186,983** | **298,614** | **1.597** |
+
+All 5 ratios cluster tightly (1.54–1.68), matching the 82-sample `Neither`
+group's mean ratio of 1.58 — no individual GG(i5) sample stands out as an
+underperformer relative to the others.
+
 ![Scatter plot of Input reads, Run131 (MiSeq) vs NextSeq001 (NextSeq), colored by GG-index status](figures/plateD002_gg_vs_neither_scatter.png)
 
 **Interactive version** (hover for per-sample detail, toggle to a full
