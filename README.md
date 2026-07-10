@@ -3,7 +3,7 @@
 ## Background & purpose
 
 Paragon's bioinformatics team reviewed the index sequences for the 12
-additional plates now being manufactured and identified **104 indexes**
+12-bp indexes plates and identified **104 indexes**
 that violate Illumina's requirement that index reads must not begin with
 two "G" bases in the first two cycles. Per Illumina, a "GG"-leading index
 generates no signal in cycles 1–2, which can cause failed demultiplexing or
@@ -20,8 +20,8 @@ relevant source of real-world evidence on whether this risk has actually
 materialized as a performance problem (low signal, cluster-registration
 failures, repeated failed samples on specific index combinations).
 
-This analysis is a first, narrow look at that evidence: one batch
-(**PlateD002**, indexed with **Dual003**) that was run on both a MiSeq
+This analysis is a first look at that evidence: one batch
+(**PlateD002**, indexed with **Dual003**) that was run at CPHL on both a MiSeq
 (**Run131**, no GG problems reported) and a NextSeq (**NextSeq001**,
 potential GG problem reported), compared sample-for-sample.
 
@@ -29,7 +29,7 @@ potential GG problem reported), compared sample-for-sample.
 
 - **2026-07-10:** `data/sample_coverage_Run131.txt` was replaced with a
   corrected export. The original file had the 2 positive controls under
-  the wrong lot ID (`8073801003`, vs `8073801533` used everywhere else),
+  the wrong micronic ID (`8073801003`, vs `8073801533` used everywhere else),
   which made them fail to match the index sheet, and used hyphens instead
   of underscores in control names (`Negative-Control-1` vs
   `Negative_Control_1`). The corrected file fixes the lot ID and the
@@ -76,8 +76,7 @@ Derived outputs are in [`data/processed/`](data/processed):
    `Sample_ID` gives **96/96 matches in both runs**.
 
 3. **Sample type.** Each matched sample is tagged `biological`,
-   `positive_control`, or `negative_control`. Positive controls (a
-   synthetic mock-community standard, expected to amplify normally) are
+   `positive_control`, or `negative_control`. Positive controls are
    kept in the performance comparison. **Negative controls are excluded**
    from the plot and summary statistics: near-zero `Input` reads is their
    correct, expected outcome (no template loaded), not a performance
@@ -180,19 +179,6 @@ clearance:
 - `Input` reads capture demux/cluster-registration success but not
   downstream data quality (e.g., elevated index-hopping or lower Q30 in
   cycles 1–2) — this analysis doesn't rule those out.
-
-### Suggested next steps
-
-- Repeat this comparison for the other plates/runs where GG-index samples
-  exist, especially any with i7-GG or `Both` samples, to build up the n.
-  before drawing a project-wide conclusion.
-- Pull index-hopping / Q30-at-cycle-1-2 metrics if available, since low
-  `Input`-read impact doesn't fully rule out the mechanism Illumina
-  describes.
-- If broader review continues to show no material impact, document that
-  as the risk-assessment evidence base per QMS, alongside Illumina's
-  published guidance and any compensating controls already in the
-  workflow (e.g., higher spike-in / loading concentration).
 
 ## Repository layout
 
