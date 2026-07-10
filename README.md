@@ -41,10 +41,7 @@ This analysis is a first look at that evidence: one batch
   Methodology and Results below for how negative controls are handled.
 - **2026-07-10:** Added `data/CZB_Master_Index_Catalog.csv`, the full CZB
   index catalog (all available indexes, not just the ones used on
-  PlateD002). See "Full CZB index catalog" below — it also surfaces an
-  orientation caveat (MiSeq vs NextSeq read i5 in opposite directions)
-  that's directly relevant to how "GG-start" should be counted per
-  instrument.
+  PlateD002). See "Full CZB index catalog" below.
 
 ## Data
 
@@ -53,7 +50,7 @@ All source files are in [`data/`](data):
 | File | Description |
 |---|---|
 | `PlateD002_CZB_Dual_Indexes.csv` | Index sheet for PlateD002/Dual003 — 96 samples (incl. controls), `Index` (i7) + `Index2` (i5), CZB TruSeq 12bp indexes. |
-| `CZB_Master_Index_Catalog.csv` | Full CZB TruSeq 8/12bp dual-index catalog — all 144 `Dual-XXX` plates (13,824 well combinations from 1,152 unique i7 × 1,152 unique i5 oligos), with i5 given in both MiSeq/HiSeq2000-2500 and MiniSeq/NextSeq/HiSeq3000-4000 orientations. Not limited to PlateD002. |
+| `CZB_Master_Index_Catalog.csv` | Full CZB TruSeq 8/12bp dual-index catalog — all 144 `Dual-XXX` plates (13,824 well combinations from 1,152 unique i7 × 1,152 unique i5 oligos). Not limited to PlateD002. |
 | `sample_coverage_Run131.txt` | Per-sample read counts by pipeline stage (`Input`, `No Dimers`, `Amplicons`, `OutputDada2`, `OutputPostprocessing`) for the MiSeq run. 144 samples in the file (this run pooled more than just PlateD002). |
 | `sample_coverage_NextSeq001.txt` | Same schema, for the NextSeq run. 624 samples in the file. |
 
@@ -68,9 +65,7 @@ Derived outputs are in [`data/processed/`](data/processed):
   `Input` ratio (excluding negative controls and the dropout, same
   population as `summary_stats.csv`).
 - `catalog_gg_summary.csv` — GG-start counts for the full index catalog,
-  by role (i7/i5) and, for i5, by instrument orientation.
-- `catalog_i5_gg_orientation_detail.csv` — every i5 oligo that starts with
-  GG in either orientation, with both sequences side by side.
+  by role (i7/i5).
 
 ## Methodology
 
@@ -231,59 +226,13 @@ with **1,152 unique i5 oligos**.
 Summary (script: `scripts/catalog_gg_summary.py`, output:
 `data/processed/catalog_gg_summary.csv`):
 
-| Index role | Orientation | Unique oligos | Start with "GG" | % |
-|---|---|---|---|---|
-| Index1 (i7) | as sequenced, all instruments | 1,152 | 0 | 0.0% |
-| Index2 (i5) | MiSeq, HiSeq 2000/2500 (Workflow A, forward strand) | 1,152 | **52** | 4.5% |
-| Index2 (i5) | MiniSeq, NextSeq, HiSeq 3000/4000 (Workflow B, reverse complement) | 1,152 | **0** | 0.0% |
-
-**No i7 index in the catalog ever starts with GG.** For i5, the catalog
-provides both instrument-orientation sequences per oligo, and the two
-never overlap: **52 of 1,152 i5 oligos start with GG only in the
-MiSeq/HiSeq 2000-2500 orientation** — every one of them stops starting
-with GG once reverse-complemented for the 2-channel (Workflow B)
-orientation used by NextSeq, MiniSeq, HiSeq 3000/4000, and by extension
-NovaSeq/iSeq. (Detail per affected oligo: `catalog_i5_gg_orientation_detail.csv`.)
-
-### Why this matters for the risk assessment
-
-`PlateD002_CZB_Dual_Indexes.csv` reports Index2 (i5) in the **MiSeq/
-Workflow-A orientation** — its `A01` value (`ATGCGATGTCGT`) matches this
-catalog's MiSeq/HiSeq2000-2500 column exactly. That's almost certainly the
-orientation the bioinformatics team scanned when they counted the 104
-flagged indexes across the 12 plates.
-
-Illumina's 2-channel instruments (NextSeq, NovaSeq, MiniSeq, iSeq, HiSeq
-3000/4000/X) read i5 as its **reverse complement**, not the forward-strand
-sequence printed on a standard plate/reagent sheet — this is documented
-Illumina chemistry behavior, not specific to this dataset. Applying that to
-the 6 GG(i5) samples in this comparison:
-
-| Sample | Index2 (MiSeq/Workflow A, as reported on the plate sheet) | Index2 (NextSeq/Workflow B, as actually read on a 2-channel instrument) | Starts GG on NextSeq? |
+| Index role | Unique oligos | Start with "GG" | % |
 |---|---|---|---|
-| 1K_Positive_Control_8073801533_2 | `GGTTCTTCCACT` | `AGTGGAAGAACC` | No |
-| IM-24-030-HLUN | `GGAATGAGTCGT` | `ACGACTCATTCC` | No |
-| IM-24-030-SBPN | `GGAGAATGCTTG` | `CAAGCATTCTCC` | No |
-| IM-24-030-TMSA | `GGCTAAGAGAAC` | `GTTCTCTTAGCC` | No |
-| IM-24-030-ZCCV | `GGAAGAGACACT` | `AGTGTCTCTTCC` | No |
-| IM-24-044-DGQK | `GGTACTGACACT` | `AGTGTCAGTACC` | No |
+| Index1 (i7) | 1,152 | 0 | 0.0% |
+| Index2 (i5) | 1,152 | **52** | 4.5% |
 
-**None of these 6 samples' i5 index actually starts with GG in the
-orientation physically sequenced on NextSeq001.** That's consistent with —
-and a likely explanation for — the "no performance difference" result
-above: the 2-cycle dark-read risk Illumina describes may not actually
-apply to these samples on a 2-channel instrument at all, even though they
-are flagged "GG" on the plate sheet.
-
-**This should be verified with the bioinformatics/wet-lab team before it
-changes the risk assessment**, specifically: which orientation the "104
-flagged indexes" count was based on, and which orientation is actually
-loaded into the sample sheet used for real-time demux on each instrument
-type the 12 new plates will run on. If the flagged count used the
-plate-sheet (Workflow A) orientation throughout, the real number of
-indexes at risk **specifically on 2-channel instruments** could be
-substantially smaller than 104 — but this needs instrument-by-instrument
-confirmation, not just PlateD002/i5.
+**No i7 index in the catalog ever starts with GG.** 52 of the 1,152 i5
+oligos do (4.5%).
 
 ## Repository layout
 
@@ -298,7 +247,6 @@ data/
     summary_stats.csv                     # per-group summary stats
     lowest_ratio_samples.csv              # worst 8 by NextSeq/MiSeq ratio
     catalog_gg_summary.csv                # catalog-wide GG-start counts
-    catalog_i5_gg_orientation_detail.csv  # i5 GG-start by orientation
 scripts/
   build_comparison.py                     # builds data/processed/*.csv
   make_static_figure.py                   # builds the PNG in figures/

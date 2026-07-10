@@ -1,4 +1,3 @@
-Index_role,Orientation,n_unique_oligos,n_starting_GG,pct_starting_GG
-Index1 (i7),as sequenced (all instruments),1152,0,0.0
-Index2 (i5),"MiSeq, HiSeq 2000/2500 (Workflow A, forward strand)",1152,52,4.51
-Index2 (i5),"MiniSeq, NextSeq, HiSeq 3000/4000 (Workflow B, reverse complement)",1152,0,0.0
+Index_role,n_unique_oligos,n_starting_GG,pct_starting_GG
+Index1 (i7),1152,0,0.0
+Index2 (i5),1152,52,4.51
