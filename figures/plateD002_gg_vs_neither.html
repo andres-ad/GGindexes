@@ -1,0 +1,318 @@
+<!doctype html>
+<title>PlateD002 GG-index Input read comparison</title>
+<style>
+  :root {
+    --surface-1: #fcfcfb;
+    --page: #f9f9f7;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --gridline: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --series-neither: #2a78d6;
+    --series-gg: #1baf7a;
+    --refline: #898781;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1: #1a1a19;
+      --page: #0d0d0d;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --gridline: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --series-neither: #3987e5;
+      --series-gg: #199e70;
+      --refline: #6b6a64;
+    }
+  }
+  :root[data-theme="light"] {
+    --surface-1: #fcfcfb; --page: #f9f9f7; --text-primary: #0b0b0b; --text-secondary: #52514e;
+    --text-muted: #898781; --gridline: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-neither: #2a78d6; --series-gg: #1baf7a; --refline: #898781;
+  }
+  :root[data-theme="dark"] {
+    --surface-1: #1a1a19; --page: #0d0d0d; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #898781; --gridline: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --series-neither: #3987e5; --series-gg: #199e70; --refline: #6b6a64;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--text-primary);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.sub { color: var(--text-secondary); margin: 0 0 20px; font-size: 13px; }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 20px 12px;
+  }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-primary); }
+  .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .swatch.neither { background: var(--series-neither); }
+  .swatch.gg { background: var(--series-gg); }
+  .swatch.ref { width: 14px; height: 0; border-top: 1px solid var(--refline); border-radius: 0; }
+  button.toggle {
+    font: inherit; font-size: 12.5px; color: var(--text-primary); background: transparent;
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+  }
+  button.toggle:hover { background: var(--gridline); }
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .axis-label { fill: var(--text-secondary); font-size: 12px; }
+  .tick-label { fill: var(--text-muted); font-size: 10.5px; }
+  .gridline { stroke: var(--gridline); stroke-width: 1; }
+  .baseline { stroke: var(--baseline); stroke-width: 1; }
+  .refline { stroke: var(--refline); stroke-width: 1; }
+  .dot { stroke: var(--surface-1); stroke-width: 1.5; }
+  .hit { fill: transparent; cursor: pointer; }
+  .dot.dim { opacity: 0.25; }
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 10; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-size: 12px; color: var(--text-secondary); box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    opacity: 0; transform: translate(-9999px, -9999px); transition: opacity 0.08s;
+    max-width: 240px;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .val { color: var(--text-primary); font-weight: 600; }
+  .tooltip .row { display: flex; justify-content: space-between; gap: 14px; }
+  .tooltip .key { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11.5px; }
+  .tooltip .key-line { width: 10px; height: 2px; }
+  .foot { color: var(--text-muted); font-size: 11.5px; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--gridline); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
+  th { color: var(--text-secondary); font-weight: 600; position: sticky; top: 0; background: var(--surface-1); }
+  td { color: var(--text-primary); }
+  .table-wrap { max-height: 480px; overflow-y: auto; display: none; }
+  .cat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+</style>
+<div class="wrap">
+  <h1>PlateD002 / Dual003 — Input reads by platform, colored by GG-index status</h1>
+  <p class="sub">Run131 (MiSeq) vs NextSeq001 (NextSeq) · same 88 matched samples · Input-stage reads (log-log) · hover a point for details</p>
+  <div class="card">
+    <div class="toolbar">
+      <div class="legend" id="legend"></div>
+      <button class="toggle" id="toggleView">Show table view</button>
+    </div>
+    <svg id="chart" viewBox="0 0 820 600"></svg>
+    <div class="table-wrap" id="tableWrap"></div>
+    <p class="foot">Excluded from the plot: IM-24-030-QCFP (Input = 1 read on both platforms, likely complete dropout, index category "Neither" — unrelated to GG status). It remains in the table view and in <code>data/processed/plateD002_input_comparison.csv</code>.</p>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const DATA = [{"id": "IM-24-030-HLUN", "index1": "AGTGTGGAAGCT", "index2": "GGAATGAGTCGT", "cat": "Index2_GG", "x": 122059, "y": 189942, "ratio": 1.556}, {"id": "IM-24-030-SBPN", "index1": "GTTCAGATCTGG", "index2": "GGAGAATGCTTG", "cat": "Index2_GG", "x": 100178, "y": 168147, "ratio": 1.678}, {"id": "IM-24-030-TMSA", "index1": "TGCTGAGATGTC", "index2": "GGCTAAGAGAAC", "cat": "Index2_GG", "x": 249034, "y": 382420, "ratio": 1.536}, {"id": "IM-24-030-ZCCV", "index1": "AGTGGAAGAACC", "index2": "GGAAGAGACACT", "cat": "Index2_GG", "x": 247820, "y": 412307, "ratio": 1.664}, {"id": "IM-24-044-DGQK", "index1": "CTCATACCTTGG", "index2": "GGTACTGACACT", "cat": "Index2_GG", "x": 215822, "y": 340252, "ratio": 1.577}, {"id": "IM-24-030-ABGU", "index1": "CAAGGATGTGAC", "index2": "AACCTGCTTCGT", "cat": "Neither", "x": 137970, "y": 231278, "ratio": 1.676}, {"id": "IM-24-030-AVXN", "index1": "GTTCGATGTCTG", "index2": "GCTTACGAAGCA", "cat": "Neither", "x": 118434, "y": 187049, "ratio": 1.579}, {"id": "IM-24-030-BURQ", "index1": "CTCAATACCGGT", "index2": "GACATCTCAGCA", "cat": "Neither", "x": 238199, "y": 413617, "ratio": 1.736}, {"id": "IM-24-030-DULD", "index1": "TCACAGCACTAC", "index2": "GTCACATCCTTG", "cat": "Neither", "x": 152261, "y": 241847, "ratio": 1.588}, {"id": "IM-24-030-FCCF", "index1": "CAAGTGTAAGGC", "index2": "GTGCAATCCACT", "cat": "Neither", "x": 120541, "y": 210262, "ratio": 1.744}, {"id": "IM-24-030-FTFR", "index1": "CAAGCATTCTCC", "index2": "CAGACATCGAAC", "cat": "Neither", "x": 144431, "y": 185681, "ratio": 1.286}, {"id": "IM-24-030-GRDR", "index1": "AGTGACGTGTGT", "index2": "TAGGACTCGAAC", "cat": "Neither", "x": 165187, "y": 233254, "ratio": 1.412}, {"id": "IM-24-030-GYPL", "index1": "GAGTATGGTGAC", "index2": "CCAAGGTATGAG", "cat": "Neither", "x": 201140, "y": 314345, "ratio": 1.563}, {"id": "IM-24-030-JFQD", "index1": "CTCACGTAGCTT", "index2": "TGACCTCTCTTG", "cat": "Neither", "x": 87608, "y": 143575, "ratio": 1.639}, {"id": "IM-24-030-JRHV", "index1": "ACGACAGGTTGA", "index2": "AAGCTACGTGAG", "cat": "Neither", "x": 89954, "y": 157425, "ratio": 1.75}, {"id": "IM-24-030-JUAL", "index1": "GAGTCACGACTA", "index2": "TCTCTCCTTGAG", "cat": "Neither", "x": 216641, "y": 354708, "ratio": 1.637}, {"id": "IM-24-030-KGWA", "index1": "TCACACCGGAAT", "index2": "TGTACCACAGCA", "cat": "Neither", "x": 191582, "y": 325650, "ratio": 1.7}, {"id": "IM-24-030-LPHV", "index1": "ACGACAGGACAT", "index2": "ATTCCGGTGTGA", "cat": "Neither", "x": 153543, "y": 257934, "ratio": 1.68}, {"id": "IM-24-030-LQWB", "index1": "ACGAAGCAGGTT", "index2": "ATGCTCGTTGAG", "cat": "Neither", "x": 126177, "y": 214120, "ratio": 1.697}, {"id": "IM-24-030-MJGZ", "index1": "GAGTGTGAAGAC", "index2": "TGACTGTGCACT", "cat": "Neither", "x": 86410, "y": 144705, "ratio": 1.675}, {"id": "IM-24-030-PJRQ", "index1": "ACGACATCGCAT", "index2": "CGTATCCTGAAC", "cat": "Neither", "x": 200732, "y": 361756, "ratio": 1.802}, {"id": "IM-24-030-PZXL", "index1": "GTTCAGGATACG", "index2": "GTCACCATACTC", "cat": "Neither", "x": 203100, "y": 305384, "ratio": 1.504}, {"id": "IM-24-030-QCFP", "index1": "TGCTTCGTAAGC", "index2": "CTTGCAACACTC", "cat": "Neither", "x": 1, "y": 1, "ratio": 1.0}, {"id": "IM-24-030-RGPV", "index1": "AGTGCTTCACAG", "index2": "AGCTTCCACACT", "cat": "Neither", "x": 149924, "y": 242881, "ratio": 1.62}, {"id": "IM-24-030-RKXW", "index1": "CTCAACGAGCAT", "index2": "AGACGACAACTC", "cat": "Neither", "x": 191414, "y": 252080, "ratio": 1.317}, {"id": "IM-24-030-SYFU", "index1": "GTTCTCTTAGCC", "index2": "TAGTCGTGACTC", "cat": "Neither", "x": 201714, "y": 329980, "ratio": 1.636}, {"id": "IM-24-030-WQHK", "index1": "AGTGCACAGTCA", "index2": "GTGCATGAGTGA", "cat": "Neither", "x": 155833, "y": 237332, "ratio": 1.523}, {"id": "IM-24-030-WZVY", "index1": "CAAGAGAGGTCA", "index2": "TTCTGCCTGTGA", "cat": "Neither", "x": 97701, "y": 154734, "ratio": 1.584}, {"id": "IM-24-030-XKPN", "index1": "ACGACTCATTCC", "index2": "ACACACGTCACT", "cat": "Neither", "x": 202395, "y": 273798, "ratio": 1.353}, {"id": "IM-24-036-AKGG", "index1": "CAAGGTCCTTGT", "index2": "AAGTGGAGCACT", "cat": "Neither", "x": 113576, "y": 191650, "ratio": 1.687}, {"id": "IM-24-036-BHMX", "index1": "TCACCGAATAGG", "index2": "GACTTGTGGAAC", "cat": "Neither", "x": 164352, "y": 260817, "ratio": 1.587}, {"id": "IM-24-036-BSTZ", "index1": "GTTCCACAAGTC", "index2": "ATGCGATGTCGT", "cat": "Neither", "x": 192914, "y": 302526, "ratio": 1.568}, {"id": "IM-24-036-FGTR", "index1": "TGCTCGTACGAA", "index2": "TGCCATGATGAG", "cat": "Neither", "x": 82193, "y": 132276, "ratio": 1.609}, {"id": "IM-24-036-GFSY", "index1": "AGTGCTCAACAC", "index2": "GTCTTCACACTC", "cat": "Neither", "x": 148799, "y": 235767, "ratio": 1.584}, {"id": "IM-24-036-GXMV", "index1": "ACGAGCTATAGG", "index2": "CCAGATCTGAAC", "cat": "Neither", "x": 97509, "y": 129860, "ratio": 1.332}, {"id": "IM-24-036-HGDW", "index1": "ACGACTATCGCT", "index2": "GACACAGAACTC", "cat": "Neither", "x": 156778, "y": 225121, "ratio": 1.436}, {"id": "IM-24-036-HLDD", "index1": "GTTCCTCATCTG", "index2": "AGGCAAGAAGCA", "cat": "Neither", "x": 100024, "y": 166385, "ratio": 1.663}, {"id": "IM-24-036-HNXZ", "index1": "CTCACTAACTCG", "index2": "AACACTCGAGCA", "cat": "Neither", "x": 104549, "y": 162893, "ratio": 1.558}, {"id": "IM-24-036-HUXF", "index1": "GTTCGCAACCAT", "index2": "TCACCATCGTGA", "cat": "Neither", "x": 270924, "y": 455270, "ratio": 1.68}, {"id": "IM-24-036-JRKV", "index1": "CTCACTTGCCAA", "index2": "TCAACCTGTCGT", "cat": "Neither", "x": 112546, "y": 183309, "ratio": 1.629}, {"id": "IM-24-036-JXJB", "index1": "ACGAGAACCAAC", "index2": "CCTATAGCTCGT", "cat": "Neither", "x": 78678, "y": 102007, "ratio": 1.297}, {"id": "IM-24-036-JXRB", "index1": "ACGATCGCCTAT", "index2": "GTAGTGCTGTGA", "cat": "Neither", "x": 100726, "y": 166988, "ratio": 1.658}, {"id": "IM-24-036-KFTY", "index1": "AGTGCTACGGTT", "index2": "CAGAAGGTTCGT", "cat": "Neither", "x": 155335, "y": 265897, "ratio": 1.712}, {"id": "IM-24-036-KVJT", "index1": "GTTCCTTCTTGC", "index2": "CGAATGCATGAG", "cat": "Neither", "x": 71812, "y": 101409, "ratio": 1.412}, {"id": "IM-24-036-LMBX", "index1": "ACGAACCTTCTG", "index2": "ACCGGTATTGAG", "cat": "Neither", "x": 196988, "y": 322233, "ratio": 1.636}, {"id": "IM-24-036-LSSX", "index1": "GAGTCTTCGAGT", "index2": "AACGCATGCTTG", "cat": "Neither", "x": 201581, "y": 312451, "ratio": 1.55}, {"id": "IM-24-036-MGBT", "index1": "CTCACACTTGTG", "index2": "GCCTTACACTTG", "cat": "Neither", "x": 157667, "y": 243906, "ratio": 1.547}, {"id": "IM-24-036-MMML", "index1": "TGCTTGGAGCTA", "index2": "AGGAGAAGCACT", "cat": "Neither", "x": 105430, "y": 175199, "ratio": 1.662}, {"id": "IM-24-036-NRTL", "index1": "TCACCGTTGGAT", "index2": "GCAAGAAGGAAC", "cat": "Neither", "x": 169918, "y": 260443, "ratio": 1.533}, {"id": "IM-24-036-PCBV", "index1": "GTTCGACTGTTG", "index2": "TTCGTACGAGCA", "cat": "Neither", "x": 151513, "y": 239720, "ratio": 1.582}, {"id": "IM-24-036-PPXY", "index1": "CTCATCATGGCA", "index2": "CTACCATGGTGA", "cat": "Neither", "x": 81773, "y": 138136, "ratio": 1.689}, {"id": "IM-24-036-QVCT", "index1": "TGCTGTGTATGC", "index2": "AGGTAGCAGTGA", "cat": "Neither", "x": 175871, "y": 267775, "ratio": 1.523}, {"id": "IM-24-036-QYFM", "index1": "AGTGCTTCTCCT", "index2": "ACAAGGACCTTG", "cat": "Neither", "x": 93729, "y": 146866, "ratio": 1.567}, {"id": "IM-24-036-RLMJ", "index1": "GAGTCACGTGAT", "index2": "CACAAGTGTGAG", "cat": "Neither", "x": 151595, "y": 242376, "ratio": 1.599}, {"id": "IM-24-036-RQDV", "index1": "GAGTTCAAGGTC", "index2": "CCTATTCGGTGA", "cat": "Neither", "x": 179386, "y": 288535, "ratio": 1.608}, {"id": "IM-24-036-SBXS", "index1": "TGCTCGAGTGTT", "index2": "CTGGCTATGTGA", "cat": "Neither", "x": 110115, "y": 186564, "ratio": 1.694}, {"id": "IM-24-036-UJRS", "index1": "TCACATAGCCAG", "index2": "ATAGGCGATCGT", "cat": "Neither", "x": 61858, "y": 103792, "ratio": 1.678}, {"id": "IM-24-036-WCRJ", "index1": "CAAGCATGCGTT", "index2": "AGCGATAGTCGT", "cat": "Neither", "x": 174287, "y": 306937, "ratio": 1.761}, {"id": "IM-24-036-WFBS", "index1": "TCACTGCTACCT", "index2": "AACCGTAGCACT", "cat": "Neither", "x": 191572, "y": 322138, "ratio": 1.682}, {"id": "IM-24-036-WGUS", "index1": "TCACCATGGTAG", "index2": "TTGGCAAGTGAG", "cat": "Neither", "x": 75488, "y": 118275, "ratio": 1.567}, {"id": "IM-24-036-YMPJ", "index1": "CTCATGCATTCG", "index2": "GTTGGTTCTCGT", "cat": "Neither", "x": 61215, "y": 97461, "ratio": 1.592}, {"id": "IM-24-036-ZFNA", "index1": "AGTGCTCCACTT", "index2": "CTGTGAAGCACT", "cat": "Neither", "x": 106632, "y": 170298, "ratio": 1.597}, {"id": "IM-24-036-ZQVB", "index1": "TCACGATGGTGA", "index2": "GACCTTGAACTC", "cat": "Neither", "x": 194759, "y": 297469, "ratio": 1.527}, {"id": "IM-24-036-ZTTN", "index1": "GTTCCTGAGAAG", "index2": "CGAGTTAGTGAG", "cat": "Neither", "x": 143198, "y": 235945, "ratio": 1.648}, {"id": "IM-24-044-AGYR", "index1": "AGTGTCTCTTCC", "index2": "GACGAATCCTTG", "cat": "Neither", "x": 145551, "y": 211784, "ratio": 1.455}, {"id": "IM-24-044-ASXY", "index1": "AGTGTCAGTACC", "index2": "TCGATACGTGAG", "cat": "Neither", "x": 264946, "y": 401086, "ratio": 1.514}, {"id": "IM-24-044-BJBV", "index1": "GTTCGAGTCCTA", "index2": "TTGTTGGCTCGT", "cat": "Neither", "x": 129897, "y": 212205, "ratio": 1.634}, {"id": "IM-24-044-BLAP", "index1": "CAAGTCCAATGG", "index2": "TCCGTTGAGTGA", "cat": "Neither", "x": 118103, "y": 194780, "ratio": 1.649}, {"id": "IM-24-044-DHYG", "index1": "CTCAAGGAGAGA", "index2": "TCACGCTAACTC", "cat": "Neither", "x": 289593, "y": 479918, "ratio": 1.657}, {"id": "IM-24-044-JYSS", "index1": "CAAGCTGACTTC", "index2": "CAGATGAGGAAC", "cat": "Neither", "x": 230059, "y": 349448, "ratio": 1.519}, {"id": "IM-24-044-JZJL", "index1": "TGCTTCGGATGT", "index2": "CTCACTAGTGAG", "cat": "Neither", "x": 179959, "y": 277449, "ratio": 1.542}, {"id": "IM-24-044-KXJF", "index1": "TCACCTCCAACA", "index2": "GCATACACAGCA", "cat": "Neither", "x": 270592, "y": 358541, "ratio": 1.325}, {"id": "IM-24-044-MWDS", "index1": "ACGAAGAGGAGT", "index2": "ATGGTTGCGAAC", "cat": "Neither", "x": 252964, "y": 387518, "ratio": 1.532}, {"id": "IM-24-044-OCDC", "index1": "TGCTCATGCACA", "index2": "CAACAGTCGAAC", "cat": "Neither", "x": 73934, "y": 120534, "ratio": 1.63}, {"id": "IM-24-044-PXTH", "index1": "GTTCTCTGGAGT", "index2": "ACTCGAAGACTC", "cat": "Neither", "x": 171776, "y": 228293, "ratio": 1.329}, {"id": "IM-24-044-QSMX", "index1": "CAAGTCAGTCAG", "index2": "TTAGCGTGACTC", "cat": "Neither", "x": 82444, "y": 133649, "ratio": 1.621}, {"id": "IM-24-044-QTBV", "index1": "CAAGGTCACTCT", "index2": "ATCCAACGGTGA", "cat": "Neither", "x": 69987, "y": 117201, "ratio": 1.675}, {"id": "IM-24-044-SDCF", "index1": "GAGTGTTGCAAG", "index2": "GTCAGACTAGCA", "cat": "Neither", "x": 116070, "y": 203245, "ratio": 1.751}, {"id": "IM-24-044-SKBF", "index1": "CTCACTAGTGAG", "index2": "GAAGTCAGCTTG", "cat": "Neither", "x": 120203, "y": 183589, "ratio": 1.527}, {"id": "IM-24-044-TWSM", "index1": "TGCTGTAGTAGC", "index2": "AGCGAACTACTC", "cat": "Neither", "x": 143544, "y": 226913, "ratio": 1.581}, {"id": "IM-24-044-UHQM", "index1": "CAAGGCTTCAAC", "index2": "TGTTGGAGGTGA", "cat": "Neither", "x": 182880, "y": 279004, "ratio": 1.526}, {"id": "IM-24-044-UKFD", "index1": "TGCTGTGGTACA", "index2": "ACATCCGAAGCA", "cat": "Neither", "x": 205553, "y": 349873, "ratio": 1.702}, {"id": "IM-24-044-ULMT", "index1": "CTCACGTATCGA", "index2": "ACTCCTCTTCGT", "cat": "Neither", "x": 261098, "y": 390157, "ratio": 1.494}, {"id": "IM-24-044-UQPJ", "index1": "CAAGGATTCGTC", "index2": "ACTCCAGAGAAC", "cat": "Neither", "x": 206138, "y": 303779, "ratio": 1.474}, {"id": "IM-24-044-UZMH", "index1": "ACGAGCCAACAA", "index2": "CTGACTGACTTG", "cat": "Neither", "x": 155645, "y": 223936, "ratio": 1.439}, {"id": "IM-24-044-WGHW", "index1": "GAGTTAGCGTGA", "index2": "GTTGAAGCCTTG", "cat": "Neither", "x": 236666, "y": 353390, "ratio": 1.493}, {"id": "IM-24-044-WQPU", "index1": "GAGTTGTCGTCT", "index2": "GCTACTACAGCA", "cat": "Neither", "x": 167318, "y": 257706, "ratio": 1.54}, {"id": "IM-24-044-WUNF", "index1": "TCACTCAACGGA", "index2": "TGTGCATGAGCA", "cat": "Neither", "x": 137460, "y": 224443, "ratio": 1.633}];
+const DROPOUT_FLOOR = 100;
+const plotted = DATA.filter(d => d.x >= DROPOUT_FLOOR && d.y >= DROPOUT_FLOOR);
+
+const CAT_META = {
+  Neither: { label: "Neither index starts GG", varName: "--series-neither", cls: "neither" },
+  Index2_GG: { label: "Index2 (i5) starts GG", varName: "--series-gg", cls: "gg" },
+};
+
+// ---- Legend ----
+const legend = document.getElementById("legend");
+["Neither", "Index2_GG"].forEach(cat => {
+  const n = plotted.filter(d => d.cat === cat).length;
+  const item = document.createElement("div");
+  item.className = "legend-item";
+  const sw = document.createElement("span");
+  sw.className = "swatch " + CAT_META[cat].cls;
+  item.appendChild(sw);
+  const txt = document.createElement("span");
+  txt.textContent = CAT_META[cat].label + " (n=" + n + ")";
+  item.appendChild(txt);
+  legend.appendChild(item);
+});
+const refItem = document.createElement("div");
+refItem.className = "legend-item";
+const refSw = document.createElement("span");
+refSw.className = "swatch ref";
+refItem.appendChild(refSw);
+const refTxt = document.createElement("span");
+refTxt.textContent = "y = x (equal Input reads)";
+refItem.appendChild(refTxt);
+legend.appendChild(refItem);
+
+// ---- Chart geometry ----
+const svg = document.getElementById("chart");
+const W = 820, H = 600;
+const M = { top: 16, right: 24, bottom: 46, left: 64 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+const allVals = plotted.flatMap(d => [d.x, d.y]);
+const lo = Math.pow(10, Math.floor(Math.log10(Math.min(...allVals)) * 10) / 10 - 0.05);
+const hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...allVals)) * 10) / 10 + 0.05);
+
+function xScale(v) { return M.left + (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * plotW; }
+function yScale(v) { return M.top + plotH - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)) * plotH; }
+
+function niceTicks(lo, hi) {
+  const ticks = [];
+  const startExp = Math.floor(Math.log10(lo));
+  const endExp = Math.ceil(Math.log10(hi));
+  for (let e = startExp; e <= endExp; e++) {
+    for (const m of [1, 2, 5]) {
+      const v = m * Math.pow(10, e);
+      if (v >= lo && v <= hi) ticks.push(v);
+    }
+  }
+  return ticks;
+}
+function fmt(v) {
+  return v >= 1000 ? Math.round(v).toLocaleString() : String(Math.round(v));
+}
+
+const ns = "http://www.w3.org/2000/svg";
+function el(tag, attrs) {
+  const e = document.createElementNS(ns, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+const ticks = niceTicks(lo, hi);
+ticks.forEach(t => {
+  const x = xScale(t), y = yScale(t);
+  svg.appendChild(el("line", { class: "gridline", x1: x, x2: x, y1: M.top, y2: M.top + plotH }));
+  svg.appendChild(el("line", { class: "gridline", x1: M.left, x2: M.left + plotW, y1: y, y2: y }));
+  const xt = el("text", { class: "tick-label", x, y: M.top + plotH + 16, "text-anchor": "middle" });
+  xt.textContent = fmt(t);
+  svg.appendChild(xt);
+  const yt = el("text", { class: "tick-label", x: M.left - 8, y: y + 3, "text-anchor": "end" });
+  yt.textContent = fmt(t);
+  svg.appendChild(yt);
+});
+svg.appendChild(el("line", { class: "baseline", x1: M.left, x2: M.left, y1: M.top, y2: M.top + plotH }));
+svg.appendChild(el("line", { class: "baseline", x1: M.left, x2: M.left + plotW, y1: M.top + plotH, y2: M.top + plotH }));
+
+const xlab = el("text", { class: "axis-label", x: M.left + plotW / 2, y: H - 6, "text-anchor": "middle" });
+xlab.textContent = "Input reads — Run131 (MiSeq)";
+svg.appendChild(xlab);
+const ylab = el("text", { class: "axis-label", x: -(M.top + plotH / 2), y: 16, "text-anchor": "middle", transform: "rotate(-90)" });
+ylab.textContent = "Input reads — NextSeq001 (NextSeq)";
+svg.appendChild(ylab);
+
+svg.appendChild(el("line", {
+  class: "refline", x1: xScale(lo), y1: yScale(lo), x2: xScale(hi), y2: yScale(hi),
+}));
+
+const tooltip = document.getElementById("tooltip");
+plotted.forEach(d => {
+  const cx = xScale(d.x), cy = yScale(d.y);
+  const color = "var(" + CAT_META[d.cat].varName + ")";
+  const hit = el("circle", { class: "hit", cx, cy, r: 14 });
+  const dot = el("circle", { class: "dot", cx, cy, r: 5, fill: color });
+  const group = el("g", {});
+  group.appendChild(hit);
+  group.appendChild(dot);
+  function show(evt) {
+    dot.setAttribute("r", 6.5);
+    tooltip.innerHTML = "";
+    const key = document.createElement("div");
+    key.className = "key";
+    const line = document.createElement("span");
+    line.className = "key-line";
+    line.style.background = color;
+    key.appendChild(line);
+    const kt = document.createElement("span");
+    kt.textContent = d.id;
+    key.appendChild(kt);
+    tooltip.appendChild(key);
+
+    const rows = [
+      ["Category", CAT_META[d.cat].label],
+      ["Run131 (MiSeq) Input", d.x.toLocaleString()],
+      ["NextSeq001 Input", d.y.toLocaleString()],
+      ["Ratio (NextSeq / MiSeq)", d.ratio],
+    ];
+    rows.forEach(([k, v]) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      const kEl = document.createElement("span");
+      kEl.textContent = k;
+      const vEl = document.createElement("span");
+      vEl.className = "val";
+      vEl.textContent = v;
+      row.appendChild(kEl);
+      row.appendChild(vEl);
+      tooltip.appendChild(row);
+    });
+    tooltip.classList.add("show");
+    const rect = svg.getBoundingClientRect();
+    const scale = rect.width / W;
+    let left = rect.left + cx * scale + 14;
+    let top = rect.top + cy * scale - 10;
+    if (left + 240 > window.innerWidth) left = rect.left + cx * scale - 254;
+    tooltip.style.transform = "translate(" + left + "px," + top + "px)";
+  }
+  function hide() {
+    dot.setAttribute("r", 5);
+    tooltip.classList.remove("show");
+  }
+  hit.addEventListener("pointerenter", show);
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerleave", hide);
+  hit.setAttribute("tabindex", "0");
+  hit.addEventListener("focus", show);
+  hit.addEventListener("blur", hide);
+  svg.appendChild(group);
+});
+
+// ---- Table view ----
+const tableWrap = document.getElementById("tableWrap");
+const table = document.createElement("table");
+const thead = document.createElement("thead");
+thead.innerHTML = "";
+const headRow = document.createElement("tr");
+["Sample", "Category", "Input — Run131 (MiSeq)", "Input — NextSeq001", "Ratio (NextSeq/MiSeq)"].forEach(h => {
+  const th = document.createElement("th");
+  th.textContent = h;
+  headRow.appendChild(th);
+});
+thead.appendChild(headRow);
+table.appendChild(thead);
+const tbody = document.createElement("tbody");
+DATA.forEach(d => {
+  const tr = document.createElement("tr");
+  const tdId = document.createElement("td");
+  tdId.textContent = d.id;
+  tr.appendChild(tdId);
+  const tdCat = document.createElement("td");
+  const catDot = document.createElement("span");
+  catDot.className = "cat-dot";
+  catDot.style.background = "var(" + CAT_META[d.cat].varName + ")";
+  tdCat.appendChild(catDot);
+  tdCat.appendChild(document.createTextNode(CAT_META[d.cat].label));
+  tr.appendChild(tdCat);
+  const tdX = document.createElement("td");
+  tdX.textContent = d.x.toLocaleString();
+  tr.appendChild(tdX);
+  const tdY = document.createElement("td");
+  tdY.textContent = d.y.toLocaleString();
+  tr.appendChild(tdY);
+  const tdR = document.createElement("td");
+  tdR.textContent = d.ratio;
+  tr.appendChild(tdR);
+  tbody.appendChild(tr);
+});
+table.appendChild(tbody);
+tableWrap.appendChild(table);
+
+const toggleBtn = document.getElementById("toggleView");
+let showingTable = false;
+toggleBtn.addEventListener("click", () => {
+  showingTable = !showingTable;
+  svg.style.display = showingTable ? "none" : "block";
+  tableWrap.style.display = showingTable ? "block" : "none";
+  toggleBtn.textContent = showingTable ? "Show chart view" : "Show table view";
+});
+</script>
