@@ -92,11 +92,13 @@ def main():
         if r131 is None or nseq is None:
             unmatched.append(sample_id)
             continue
-        log2_fc = (nseq / r131) and __import__("math").log2(nseq / r131)
+        ratio = nseq / r131
+        log2_fc = ratio and __import__("math").log2(ratio)
         merged_rows.append({
             **info,
             "Input_Run131_MiSeq": r131,
             "Input_NextSeq001_NextSeq": nseq,
+            "ratio_NextSeq_over_MiSeq": round(ratio, 4),
             "log2_fold_change_NextSeq_over_MiSeq": round(log2_fc, 4),
         })
 
@@ -107,7 +109,7 @@ def main():
         fieldnames = [
             "Sample_ID", "Index", "Index2", "GG_category", "Sample_type",
             "Input_Run131_MiSeq", "Input_NextSeq001_NextSeq",
-            "log2_fold_change_NextSeq_over_MiSeq",
+            "ratio_NextSeq_over_MiSeq", "log2_fold_change_NextSeq_over_MiSeq",
         ]
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
@@ -157,6 +159,28 @@ def main():
                 round(statistics.stdev(nseq_vals), 1) if len(nseq_vals) > 1 else "",
                 round(statistics.mean(ratios), 3),
             ])
+
+    # Worst-performing samples by NextSeq/MiSeq ratio (same population as
+    # the summary stats above: negative controls and the one near-total
+    # dropout excluded, since both would trivially top this list for
+    # reasons unrelated to index performance).
+    worst_n = 8
+    worst_rows = sorted(stats_rows, key=lambda r: r["ratio_NextSeq_over_MiSeq"])[:worst_n]
+    worst_csv = OUT / "lowest_ratio_samples.csv"
+    with worst_csv.open("w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow([
+            "Rank", "Sample_ID", "Sample_type", "GG_category", "Index", "Index2",
+            "Input_Run131_MiSeq", "Input_NextSeq001_NextSeq", "ratio_NextSeq_over_MiSeq",
+        ])
+        for rank, r in enumerate(worst_rows, 1):
+            writer.writerow([
+                rank, r["Sample_ID"], r["Sample_type"], r["GG_category"],
+                r["Index"], r["Index2"],
+                r["Input_Run131_MiSeq"], r["Input_NextSeq001_NextSeq"],
+                r["ratio_NextSeq_over_MiSeq"],
+            ])
+    print(f"Wrote {worst_csv}")
 
     print(f"Matched samples: {len(merged_rows)} / {len(samples)}")
     print(f"Unmatched (excluded): {len(unmatched)} -> {sorted(unmatched)}")

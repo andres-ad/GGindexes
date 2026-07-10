@@ -57,6 +57,9 @@ Derived outputs are in [`data/processed/`](data/processed):
   NextSeq/MiSeq fold-change.
 - `summary_stats.csv` — n / mean / median / stdev of `Input` reads per GG
   category per platform, and the mean NextSeq/MiSeq ratio per group.
+- `lowest_ratio_samples.csv` — the 8 samples with the lowest NextSeq/MiSeq
+  `Input` ratio (excluding negative controls and the dropout, same
+  population as `summary_stats.csv`).
 
 ## Methodology
 
@@ -156,6 +159,32 @@ https://claude.ai/code/artifact/b91f10a5-b492-44c0-bf9c-a2527649b0d9
   dropout, which is a `Neither`-category biological sample, not a GG one
   (negative controls are near-zero by design and are excluded separately).
 
+### Lowest-performing samples (worst 8 by NextSeq/MiSeq ratio)
+
+The flip side of "do GG samples underperform" is "do the actual
+underperformers turn out to be GG samples." They don't — the 8 samples
+with the lowest NextSeq/MiSeq `Input` ratio in this batch are **all
+`Neither`**, none of them GG-flagged on either index:
+
+| Rank | Sample | Index (i7) | Index2 (i5) | Input — Run131 (MiSeq) | Input — NextSeq001 | Ratio (NextSeq / MiSeq) |
+|---|---|---|---|---|---|---|
+| 1 | IM-24-030-FTFR | `CAAGCATTCTCC` | `CAGACATCGAAC` | 144,431 | 185,681 | 1.286 |
+| 2 | IM-24-036-JXJB | `ACGAGAACCAAC` | `CCTATAGCTCGT` | 78,678 | 102,007 | 1.297 |
+| 3 | IM-24-030-RKXW | `CTCAACGAGCAT` | `AGACGACAACTC` | 191,414 | 252,080 | 1.317 |
+| 4 | IM-24-044-KXJF | `TCACCTCCAACA` | `GCATACACAGCA` | 270,592 | 358,541 | 1.325 |
+| 5 | IM-24-044-PXTH | `GTTCTCTGGAGT` | `ACTCGAAGACTC` | 171,776 | 228,293 | 1.329 |
+| 6 | IM-24-036-GXMV | `ACGAGCTATAGG` | `CCAGATCTGAAC` | 97,509 | 129,860 | 1.332 |
+| 7 | IM-24-030-XKPN | `ACGACTCATTCC` | `ACACACGTCACT` | 202,395 | 273,798 | 1.353 |
+| 8 | IM-24-030-GRDR | `AGTGACGTGTGT` | `TAGGACTCGAAC` | 165,187 | 233,254 | 1.412 |
+
+For reference, the lowest ratio among the 6 GG(i5) samples is 1.536
+(`IM-24-030-TMSA`) — higher than every sample in this worst-8 table, and
+that sample ranks 26th out of 89 by ratio (i.e. solidly mid-pack, not a
+tail case). None of the GG(i5) samples rank in the bottom third of the
+batch. (Full ranking: `data/processed/lowest_ratio_samples.csv` has the
+worst 8; the complete per-sample ranking can be reproduced by sorting
+`plateD002_input_comparison.csv` on `ratio_NextSeq_over_MiSeq`.)
+
 ### Interpretation
 
 **For this one batch/run pair, we see no evidence that an i5 index
@@ -190,6 +219,7 @@ data/
   processed/
     plateD002_input_comparison.csv        # per-sample merged table
     summary_stats.csv                     # per-group summary stats
+    lowest_ratio_samples.csv              # worst 8 by NextSeq/MiSeq ratio
 scripts/
   build_comparison.py                     # builds data/processed/*.csv
   make_static_figure.py                   # builds the PNG in figures/
